@@ -557,7 +557,7 @@ export class LuaDebugSession extends DebugSession {
 						this.sendResponse(response);
 					}
 					else {
-						this.variablesRequestResponce(response, res.result, id);
+						this.variablesRequestResponse(response, res.result, id);
 					}
 				});
 			}
@@ -570,7 +570,7 @@ export class LuaDebugSession extends DebugSession {
 						this.sendResponse(response);
 					}
 					else {
-						this.variablesRequestResponce(response, res.result[0], id);
+						this.variablesRequestResponse(response, res.result[0], id);
 					}
 				});
 			}
@@ -592,44 +592,29 @@ export class LuaDebugSession extends DebugSession {
 		}
 	}
 
-	private variablesRequestResponce(response: DebugProtocol.VariablesResponse, variablesData: any, id: VariableReference): void {
+	private variablesRequestResponse(response: DebugProtocol.VariablesResponse, variablesData: any, id: VariableReference): void {
 
 		const variables = [];
-		if (variablesData instanceof Array) {
-			for (let i = 0; i < variablesData.length; ++i) {
-				const typename = typeof variablesData[i];
-				let k = (i + 1).toString()
-				let varRef = 0;
-				if (typename == "object") {
-					varRef = this._variableHandles.create(new VariableReference("eval", id.msg_param, id.datapath.concat([k])));
-				}
-				variables.push({
-					name: k,
-					type: typename,
-					value: this.stringify(variablesData[i]),
-					variablesReference: varRef
-				});
-			}
-
-		}
-		else {
-			for (var k in variablesData) {
-				const typename = typeof variablesData[k];
-				let varRef = 0;
-				if (typename == "object") {
-					let datakey = k;
-					if (id.datapath.length) {
+		for (var k in variablesData) {
+			const typename = typeof variablesData[k];
+			let varRef = 0;
+			if (typename == "object") {
+				let datakey = k;
+				if (datakey[0] === '[') {
+					varRef = 0;
+				} else {
+					if (id.datapath.length && datakey[0] !== '"') {
 						datakey = '"' + k + '"'
 					}
 					varRef = this._variableHandles.create(new VariableReference("eval", id.msg_param, id.datapath.concat([datakey])));
 				}
-				variables.push({
-					name: k,
-					type: typename,
-					value: this.stringify(variablesData[k]),
-					variablesReference: varRef
-				});
 			}
+			variables.push({
+				name: k,
+				type: typename,
+				value: this.stringify(variablesData[k]),
+				variablesReference: varRef
+			});
 		}
 		response.body = {
 			variables: variables
